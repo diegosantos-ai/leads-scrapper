@@ -55,7 +55,6 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-        run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             python main.py --query "${{ github.event.inputs.query }}" --limit ${{ github.event.inputs.limit }} --segment "${{ github.event.inputs.segment }}" --no-enrich
           else
