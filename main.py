@@ -27,7 +27,9 @@ async def main():
     if args.segment:
         print("🔌 Connecting to Database...")
         # In production use migrations (Alembic). For MVP, create tables if not exist.
-        Base.metadata.create_all(bind=engine)
+        # In production use migrations (Alembic). For MVP, create tables if not exist.
+        # Base.metadata.create_all(bind=engine) # DISABLED to prevent concurrency locks
+        pass
     
     print(f"🚀 Starting Lead Generation for: '{args.query}' (Limit: {args.limit})")
     
@@ -154,7 +156,7 @@ async def main():
             # Log failure
             fail_log = LogScraping(
                 url_origem="Google Maps", 
-                status_extracao=f"Erro: {str(e)}", 
+                status_extracao=f"Erro: {str(e)}"[:50], 
                 termo_busca=args.query
             )
             db.add(fail_log)
