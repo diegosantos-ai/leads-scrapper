@@ -38,3 +38,7 @@ ENV/
 
 # estrategia de negocio
 plano_de_negocios_leads.md
+top_10.md
+
+# leads
+*.csv
