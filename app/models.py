@@ -1,5 +1,5 @@
 from pydantic import BaseModel, HttpUrl, EmailStr, Field
-from typing import Optional
+from typing import Optional, List
 
 class Lead(BaseModel):
     """
@@ -16,6 +16,11 @@ class Lead(BaseModel):
     sector: Optional[str] = None
     employees_estimate: Optional[str] = None
     business_type: Optional[str] = Field(None, description="B2B or B2C")
+
+    # Firmographic Data (Phase 3)
+    cnpj: Optional[str] = None
+    capital_social: Optional[str] = None
+    socios: Optional[List[str]] = Field(default_factory=list)
     
     class Config:
         from_attributes = True
