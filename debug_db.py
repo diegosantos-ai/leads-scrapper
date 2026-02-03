@@ -1,28 +1,18 @@
-from app.database import SessionLocal, engine
-from app.schema import Empresa, Contato, LogScraping
-from sqlalchemy import text
+from app.database import SessionLocal
+from app.schema import LogScraping, Empresa
 
-def check_data():
+def check_specific():
     db = SessionLocal()
     try:
-        print(f"🔌 Checking Database...")
-        
-        # Count Total
-        count_emp = db.query(Empresa).count()
-        print(f"\n📊 TOTAL DE LEADS NO BANCO: {count_emp}")
-        
-        # Count by Segment
-        print("\n📂 Por Segmento:")
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT segmento_mercado, COUNT(*) FROM empresas GROUP BY segmento_mercado"))
-            for row in result:
-                print(f"   - {row[0]}: {row[1]} empresas")
-        
-        # List Recent
-        print(f"\n🕒 Últimas 5 empresas adicionadas:")
-        recents = db.query(Empresa).order_by(Empresa.empresa_id.desc()).limit(5).all()
-        for r in recents:
-            print(f"   - {r.razao_social} ({r.segmento_mercado})")
+        print(f"🔌 Checking Specific Logs...")
+        logs = db.query(LogScraping).filter(LogScraping.termo_busca == "Agência Marketing Av Paulista").all()
+        for log in logs:
+            print(f"[{log.status_extracao}] {log.termo_busca} ({log.data_hora})")
+            
+        print("\n📂 Checking Companies:")
+        companies = db.query(Empresa).filter(Empresa.razao_social.ilike("%Agência%")).all()
+        for c in companies:
+            print(f"- {c.razao_social} | {c.site_url}")
 
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -30,4 +20,4 @@ def check_data():
         db.close()
 
 if __name__ == "__main__":
-    check_data()
+    check_specific()

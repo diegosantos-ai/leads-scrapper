@@ -33,17 +33,32 @@ async def process_lead_generation(query: str, limit: int, segment: str, no_enric
         else:
             print("⚠️ Skipping enrichment (No API Key found)")
     
-    # 2b. Enrich (CNPJ)
+    # 2b. Enrich (CNPJ + Contacts)
     if deep_enrich:
-        print("Step 2b: Deep Enrichment (CNPJ & Firmographics)...")
+        print("Step 2b: Deep Enrichment (CNPJ & Contacts)...")
+        from app.scrapers.contacts import ContactScraper
         cnpj_scraper = CNPJScraper()
+        contact_scraper = ContactScraper()
         
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-            page = await context.new_page()
             
+            # --- CONTACT SCRAPING PAGE (REUSABLE) ---
+            scrape_page = await context.new_page()
+
             for lead in leads:
+                # 1. Contact Scraping (Website)
+                if lead.source_url and lead.source_url.startswith("http"):
+                    contact_info = await contact_scraper.scrape_contacts(scrape_page, lead.source_url)
+                    if contact_info["email"]:
+                        print(f"    📧 Email found for {lead.name}: {contact_info['email']}")
+                        # We temporarily attach it to the lead object for DB saving
+                        lead.email = contact_info["email"] 
+                    if contact_info["phone"]:
+                        lead.phone = contact_info["phone"] # Updates existing phone if found worse one
+
+                # 2. CNPJ Scraping
                 city = "Brazil"
                 if lead.address and "," in lead.address:
                     parts = lead.address.split(",")
@@ -53,7 +68,7 @@ async def process_lead_generation(query: str, limit: int, segment: str, no_enric
                 url = await cnpj_scraper.search_cnpj_url(lead.name, city)
                 
                 if url:
-                    data = await cnpj_scraper.scrape_data(page, url)
+                    data = await cnpj_scraper.scrape_data(scrape_page, url)
                     if data:
                         lead.cnpj = data.get('cnpj')
                         lead.capital_social = data.get('capital_social')
@@ -99,12 +114,15 @@ async def process_lead_generation(query: str, limit: int, segment: str, no_enric
             else:
                 company_id = existing_company.empresa_id
             
-            if lead.phone or lead.website:
+            # Check for email attached during Deep Enrich
+            lead_email = getattr(lead, 'email', None)
+
+            if lead.phone or lead.website or lead_email:
                     contato = Contato(
                         empresa_id=company_id,
                         nome_completo="Contato Geral",
                         telefone_direto=lead.phone,
-                        email_corporativo=None
+                        email_corporativo=lead_email
                     )
                     db.add(contato)
 
