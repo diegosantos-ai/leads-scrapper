@@ -67,15 +67,20 @@ class LeadEnricher:
         
         try:
             response = await self.llm.ainvoke(prompt.format(name=lead.name, content=website_text))
-            # Basic parsing - in production use OutputParsers
-            print(f"AI Analysis: {response.content}")
+            content = response.content.replace('```json', '').replace('```', '')
+            import json
+            data = json.loads(content)
             
-            # For now, just storing raw result or parsing simple strings
-            # Ideally we parse the JSON
-            # lead.sector = ...
-            # lead.business_type = ...
+            lead.sector = data.get("Sector")
+            lead.business_type = data.get("Business Type")
+            lead.employees_estimate = data.get("Estimated Employee Count")
             
         except Exception as e:
             print(f"AI Error: {e}")
             
         return lead
+
+    async def enrich_leads(self, leads: list[Lead]) -> list[Lead]:
+        """Enriches a list of leads in parallel"""
+        tasks = [self.enrich(lead) for lead in leads]
+        return await asyncio.gather(*tasks)
