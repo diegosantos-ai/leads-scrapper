@@ -35,3 +35,6 @@ ENV/
 
 # Playwright
 /test-results/
+
+# estrategia de negocio
+plano_de_negocios_leads.md
