@@ -1,18 +1,21 @@
 from app.database import SessionLocal
-from app.schema import LogScraping, Empresa
+from app.schema import Empresa
 
-def check_specific():
+def check_completeness():
     db = SessionLocal()
     try:
-        print(f"🔌 Checking Specific Logs...")
-        logs = db.query(LogScraping).filter(LogScraping.termo_busca == "Agência Marketing Av Paulista").all()
-        for log in logs:
-            print(f"[{log.status_extracao}] {log.termo_busca} ({log.data_hora})")
-            
-        print("\n📂 Checking Companies:")
-        companies = db.query(Empresa).filter(Empresa.razao_social.ilike("%Agência%")).all()
+        print(f"🔌 Checking Data Completeness (QuickWinTest)...")
+        companies = db.query(Empresa).filter(Empresa.segmento_mercado == "QuickWinTest").all()
+        
         for c in companies:
-            print(f"- {c.razao_social} | {c.site_url}")
+            print(f"\n📊 {c.razao_social}")
+            print(f"   Nome Fantasia: {c.nome_fantasia}")
+            print(f"   CNPJ: {c.cnpj}")
+            print(f"   Cidade: {c.cidade} | Estado: {c.estado}")
+            print(f"   Setor CNAE: {c.setor_cnae}")
+            print(f"   Faturamento: {c.faturamento_estimado}")
+            print(f"   Colaboradores: {c.tamanho_colaboradores}")
+            print(f"   Site: {c.site_url}")
 
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -20,4 +23,4 @@ def check_specific():
         db.close()
 
 if __name__ == "__main__":
-    check_specific()
+    check_completeness()

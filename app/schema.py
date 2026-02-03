@@ -7,22 +7,48 @@ class Empresa(Base):
     __tablename__ = "empresas"
 
     empresa_id = Column(Integer, primary_key=True, index=True)
-    cnpj = Column(String(18), unique=True, nullable=True) # Uniqueness check
-    razao_social = Column(String(255), nullable=False) # We'll use Name scaped as Razao Social initially
+    cnpj = Column(String(18), unique=True, nullable=True)
+    razao_social = Column(String(255), nullable=False)
     nome_fantasia = Column(String(255), nullable=True)
     site_url = Column(String(255), nullable=True)
     linkedin_empresa = Column(String(255), nullable=True)
-    setor_cnae = Column(String(100), nullable=True) # Mapped from Sector
+    setor_cnae = Column(String(255), nullable=True)  # Increased for full description
     tamanho_colaboradores = Column(String(50), nullable=True)
     faturamento_estimado = Column(String(50), nullable=True)
     cidade = Column(String(100), nullable=True)
     estado = Column(String(2), nullable=True)
-    segmento_mercado = Column(String(100), index=True) # "Padaria", "Marketing" (from CLI arg)
+    segmento_mercado = Column(String(100), index=True)
+    
+    # New fields from ReceitaWS
+    porte = Column(String(100), nullable=True)  # MEI, EPP, etc.
+    natureza_juridica = Column(String(255), nullable=True)
+    data_abertura = Column(String(10), nullable=True)
+    situacao_cadastral = Column(String(50), nullable=True)  # ATIVA, BAIXADA, etc.
+    capital_social = Column(String(50), nullable=True)
+    telefone_empresa = Column(String(20), nullable=True)
+    email_empresa = Column(String(255), nullable=True)
+    endereco_completo = Column(Text, nullable=True)
     
     data_extracao = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
     contatos = relationship("Contato", back_populates="empresa")
+    socios = relationship("Socio", back_populates="empresa")
+
+class Socio(Base):
+    """Partners and Administrators from QSA (Quadro de Sócios e Administradores)"""
+    __tablename__ = "socios"
+
+    socio_id = Column(Integer, primary_key=True, index=True)
+    empresa_id = Column(Integer, ForeignKey("empresas.empresa_id"))
+    
+    nome_completo = Column(String(255), nullable=False)
+    cargo = Column(String(150), nullable=True)  # Sócio-Administrador, Diretor, etc.
+    
+    data_extracao = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    empresa = relationship("Empresa", back_populates="socios")
 
 class Contato(Base):
     __tablename__ = "contatos"

@@ -51,6 +51,8 @@ class CNPJScraper:
             data['cnpj'] = await get_by_label("CNPJ:")
             data['capital_social'] = await get_by_label("Capital Social:")
             data['razao_social'] = await page.evaluate("document.querySelector('h1') ? document.querySelector('h1').textContent : ''")
+            data['nome_fantasia'] = await get_by_label("Nome Fantasia:")
+            data['atividade_principal'] = await get_by_label("Atividade Principal:")
             
             # Cleaning
             if data['cnpj']:
