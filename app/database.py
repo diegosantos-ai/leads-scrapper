@@ -31,7 +31,9 @@ DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NA
 engine = create_engine(
     DATABASE_URL, 
     echo=False,
-    connect_args=ssl_args
+    connect_args=ssl_args,
+    pool_pre_ping=True,  # Test connection before usage
+    pool_recycle=3600    # Recycle connections every hour
 )
 
 # Session factory
