@@ -1,0 +1,54 @@
+name: Coleta Diária Leads
+
+on:
+  schedule:
+    # Roda todo dia as 09:00 AM (UTC) -> 06:00 BRT
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Permite rodar manualmente no botão
+
+jobs:
+  scrape-job:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache Pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Instalar Dependências
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps
+
+      - name: Rodar Coleta (Batch)
+        env:
+          # Segredos configurados no GitHub
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python run_batch.py
+
+      - name: Upload Logs (Artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-csvs
+          path: |
+            *.csv
+            *.log

@@ -41,31 +41,38 @@ class GoogleMapsScraper:
                 feed = page.locator(feed_selector)
                 
                 print("Scrolling to load results...")
-                previous_height = 0
+                previous_count = 0
+                stale_count = 0
+                max_stale = 5  # Break if no new cards after 5 scroll attempts
+                
                 while len(leads) < limit:
-                    # Extract items currently visible
-                    # Result items usually have class 'Nv2PK' or are direct children of the feed
-                    # A robust way is looking for 'a' tags with href containing '/maps/place' inside the feed
-                    # But often the text is in a div.
-                    
                     # selector for cards
                     card_selector = 'div.Nv2PK' 
                     
                     if await feed.locator(card_selector).count() == 0:
-                        # Fallback or maybe not loaded yet
                         await page.wait_for_timeout(2000)
                     
                     cards = await feed.locator(card_selector).all()
+                    current_card_count = len(cards)
                     
-                    print(f"Found {len(cards)} cards so far...")
+                    print(f"Found {current_card_count} cards so far...")
+                    
+                    # Stale detection: if same count after scroll, increment stale counter
+                    if current_card_count == previous_count:
+                        stale_count += 1
+                        if stale_count >= max_stale:
+                            print(f"No new cards after {max_stale} scrolls. Breaking.")
+                            break
+                    else:
+                        stale_count = 0
+                    
+                    previous_count = current_card_count
                     
                     for card in cards:
                         if len(leads) >= limit:
                             break
                             
                         try:
-                            # Extract Name
-                            # Usually in a div with class 'fontHeadlineSmall'
                             name_loc = card.locator('.fontHeadlineSmall')
                             if await name_loc.count() == 0:
                                 continue
@@ -75,35 +82,14 @@ class GoogleMapsScraper:
                             if any(l.name == name for l in leads):
                                 continue
 
-                            # Extract Link (to go to details if needed, but we try to get info from card first)
-                            # The card itself or a child 'a' tag has the link
                             link_loc = card.locator('a.hfpxzc')
                             source_url = await link_loc.get_attribute('href') if await link_loc.count() > 0 else None
-                            
-                            # Extract Rating/Address/Phone text lines
-                            # These are usually in 'div.W4P4ne' or 'span.W4P4ne'
-                            # It's messy.
-                            
-                            text_content = await card.inner_text()
-                            lines = text_content.split('\n')
-                            
-                            # Heuristic extraction
-                            phone = None
-                            address = None
-                            
-                            # Basic string matching for now (robust extraction needs visiting the page)
-                            # Visiting each page takes time. For valid MVP, we scrape the list.
-                            # But often phone is not in the list view, only in the detail view.
-                            # Strategy: We can click each item to see details on the side panel, allowing better extraction.
-                            
-                            # Let's try to just get name/url from list, then visit details IS BETTER?
-                            # No, Google Maps puts details in a side panel when you click.
                             
                             lead = Lead(
                                 name=name,
                                 source_url=source_url,
-                                address=None, # Placeholder
-                                phone=None    # Placeholder
+                                address=None,
+                                phone=None
                             )
                             leads.append(lead)
                             print(f"  + Scraped: {name}")
@@ -115,14 +101,11 @@ class GoogleMapsScraper:
                         break
                         
                     # Scroll down
-                    # We need to scroll the FEED element, not the window
                     await feed.evaluate("node => node.scrollTop += 2000")
-                    await page.wait_for_timeout(random.uniform(1000, 3000))
-                    
-                    # simple break if no new items loaded? (omitted for MVP)
+                    await page.wait_for_timeout(random.uniform(1000, 2000))
                     
             except Exception as e:
-                print(f"Critial error: {e}")
+                print(f"Critical error: {e}")
                 await page.screenshot(path="error_critical.png")
             finally:
                 await browser.close()

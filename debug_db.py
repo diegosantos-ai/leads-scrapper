@@ -5,28 +5,24 @@ from sqlalchemy import text
 def check_data():
     db = SessionLocal()
     try:
-        print(f"🔌 Connected to: {engine.url}")
+        print(f"🔌 Checking Database...")
         
-        # Check Tables
-        print("\n📊 Checking Tables:")
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema='public';"))
-            tables = [row[0] for row in result]
-            print(f"   Found tables: {tables}")
-
-        # Check Empresas
+        # Count Total
         count_emp = db.query(Empresa).count()
-        print(f"\n🏢 Empresas: {count_emp}")
-        users = db.query(Empresa).all()
-        for u in users:
-            print(f"   - {u.razao_social} (ID: {u.empresa_id})")
-
-        # Check Logs
-        count_logs = db.query(LogScraping).count()
-        print(f"\n📜 Logs: {count_logs}")
-        logs = db.query(LogScraping).all()
-        for l in logs:
-            print(f"   - {l.status_extracao} ({l.data_hora})")
+        print(f"\n📊 TOTAL DE LEADS NO BANCO: {count_emp}")
+        
+        # Count by Segment
+        print("\n📂 Por Segmento:")
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT segmento_mercado, COUNT(*) FROM empresas GROUP BY segmento_mercado"))
+            for row in result:
+                print(f"   - {row[0]}: {row[1]} empresas")
+        
+        # List Recent
+        print(f"\n🕒 Últimas 5 empresas adicionadas:")
+        recents = db.query(Empresa).order_by(Empresa.empresa_id.desc()).limit(5).all()
+        for r in recents:
+            print(f"   - {r.razao_social} ({r.segmento_mercado})")
 
     except Exception as e:
         print(f"❌ Error: {e}")
