@@ -1,0 +1,46 @@
+name: Data Enrichment Pipeline
+
+on:
+    schedule:
+        - cron: "0 0 5 * *" # Run on the 5th of every month
+    workflow_dispatch: # Allow manual trigger
+
+jobs:
+    update-datasets:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.10"
+
+            - name: Install Dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install -r requirements.txt
+                  pip install requests httpx sqlalchemy psycopg2-binary
+
+            - name: Run Data Pipeline (SP Focus)
+              env:
+                  DB_HOST: ${{ secrets.DB_HOST }}
+                  DB_NAME: ${{ secrets.DB_NAME }}
+                  DB_USER: ${{ secrets.DB_USER }}
+                  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+                  DB_PORT: ${{ secrets.DB_PORT }}
+              run: |
+                  # Download and process data for SP (Primary Market)
+                  # Note: Full download is large, we might want to cache 'receita' dir
+                  python -m app.data.pipeline --uf SP
+
+            - name: Verify Data Integrity
+              env:
+                  DB_HOST: ${{ secrets.DB_HOST }}
+                  DB_NAME: ${{ secrets.DB_NAME }}
+                  DB_USER: ${{ secrets.DB_USER }}
+                  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+                  DB_PORT: ${{ secrets.DB_PORT }}
+              run: |
+                  python debug_db.py

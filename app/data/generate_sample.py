@@ -43,22 +43,27 @@ async def generate_sample_dataset(segment: str = "Restaurantes SP", limit: int =
                 print(f"   ⏩ Already exists: {data.get('nome', 'N/A')[:40]}")
                 continue
             
+            # Truncate values to avoid DB errors
+            telefone = data.get('telefone', '')[:20] if data.get('telefone') else None
+            email = data.get('email', '')[:255].lower() if data.get('email') else None
+            endereco = f"{data.get('logradouro', '')}, {data.get('numero', '')}, {data.get('bairro', '')}"
+            
             # Create Empresa
             empresa = Empresa(
                 cnpj=cnpj,
-                razao_social=data.get('nome'),
-                nome_fantasia=data.get('fantasia'),
-                setor_cnae=client.extract_atividade(data),
-                porte=data.get('porte'),
-                natureza_juridica=data.get('natureza_juridica'),
-                data_abertura=data.get('abertura'),
-                situacao_cadastral=data.get('situacao'),
-                capital_social=data.get('capital_social'),
-                telefone_empresa=data.get('telefone'),
-                email_empresa=data.get('email'),
-                cidade=data.get('municipio'),
-                estado=data.get('uf'),
-                endereco_completo=f"{data.get('logradouro', '')}, {data.get('numero', '')}, {data.get('bairro', '')}",
+                razao_social=data.get('nome', '')[:255],
+                nome_fantasia=data.get('fantasia', '')[:255] if data.get('fantasia') else None,
+                setor_cnae=client.extract_atividade(data)[:255] if client.extract_atividade(data) else None,
+                porte=data.get('porte', '')[:100] if data.get('porte') else None,
+                natureza_juridica=data.get('natureza_juridica', '')[:255] if data.get('natureza_juridica') else None,
+                data_abertura=data.get('abertura', '')[:10] if data.get('abertura') else None,
+                situacao_cadastral=data.get('situacao', '')[:50] if data.get('situacao') else None,
+                capital_social=str(data.get('capital_social', ''))[:50] if data.get('capital_social') else None,
+                telefone_empresa=telefone,
+                email_empresa=email,
+                cidade=data.get('municipio', '')[:100] if data.get('municipio') else None,
+                estado=data.get('uf', '')[:2] if data.get('uf') else None,
+                endereco_completo=endereco,
                 segmento_mercado=segment
             )
             
@@ -69,8 +74,8 @@ async def generate_sample_dataset(segment: str = "Restaurantes SP", limit: int =
             for socio_data in data.get('qsa', []):
                 socio = Socio(
                     empresa_id=empresa.empresa_id,
-                    nome_completo=socio_data.get('nome'),
-                    cargo=socio_data.get('qual')
+                    nome_completo=socio_data.get('nome', '')[:255],
+                    cargo=socio_data.get('qual', '')[:150] if socio_data.get('qual') else None
                 )
                 db.add(socio)
             
@@ -83,7 +88,9 @@ async def generate_sample_dataset(segment: str = "Restaurantes SP", limit: int =
         return count
         
     except Exception as e:
+        import traceback
         print(f"❌ Error: {e}")
+        traceback.print_exc()
         db.rollback()
         return 0
     finally:
