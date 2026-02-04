@@ -23,6 +23,16 @@ jobs:
                   pip install -r requirements.txt
                   pip install requests httpx sqlalchemy psycopg2-binary
 
+            - name: Diagnose Network/DB Connectivity
+              env:
+                  DATABASE_URL: postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}
+                  DB_HOST: ${{ secrets.DB_HOST }}
+                  DB_USER: ${{ secrets.DB_USER }}
+                  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+                  DB_NAME: ${{ secrets.DB_NAME }}
+              run: |
+                  python debug_network.py
+
             - name: Run Data Pipeline (SP Focus)
               env:
                   DB_HOST: ${{ secrets.DB_HOST }}
@@ -43,4 +53,4 @@ jobs:
                   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
                   DB_PORT: ${{ secrets.DB_PORT }}
               run: |
-                  python debug_db.py
+                  python debug_network.py
